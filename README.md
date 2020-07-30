@@ -1,3 +1,3 @@
-# Genomic Selection repository (Agrosavia Bioinformatics)
-Author: Luis Garreta
+# Bioinformatics for Genomic Selection 
+Author: Luis Garreta (Agrosavia Bioinformatics)
 
