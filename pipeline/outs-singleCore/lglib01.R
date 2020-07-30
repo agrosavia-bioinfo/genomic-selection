@@ -1,0 +1,1 @@
+/home/lg/agrosavia/GS/examples/paper-BWGS-Charmet2020/Charmet2020-git-bwgs/tutorial/lglib01.R
