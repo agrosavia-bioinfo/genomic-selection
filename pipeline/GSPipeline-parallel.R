@@ -4,20 +4,18 @@
 #-------------------------------------------------------------
 # Print a log message with the parameter
 #-------------------------------------------------------------
-msg <- function (...) 
-{
+msg <- function (...) {
   messages = unlist (list (...))
   cat ("\n>>>>", messages, "\n")
 }
 #-------------------------------------------------------------
 
-
 options (width=300)
-cmmArgs = commandArgs(trailingOnly = TRUE)
-cmmArgs = c ("TRAIN47K-100.csv", "TARGET47K-100.csv", "YieldBLUE-tbl.csv")
+cmdArgs = commandArgs(trailingOnly = TRUE)
+cmdArgs = c ("geno-TRAINING.csv", "geno-TESTING.csv", "pheno-TRAINING.csv")
 
-USAGE="GSPipeline.R <Training genotype filename> <Target genotype filename> <Phenotype filename>"
-if (length (cmmArgs) != 3) {
+USAGE="GSPipeline.R <Training genotype> <Testing genotype> <Training phenotype>"
+if (length (cmdArgs) != 3) {
 	message (paste0("\n\n", USAGE, "\n\n"))
 	quit ()
 }
@@ -35,14 +33,15 @@ library (BWGS)
 library (parallel)
 
 # Read arguments
-genoTrainFile  = cmmArgs [1]
-genoTargetFile = cmmArgs [2]
-phenoFile      = cmmArgs [3] 
+genoTrainFile  = cmdArgs [1]
+genoTestingFile = cmdArgs [2]
+phenoFile      = cmdArgs [3] 
 
 # Load data
-genoTrain   = read.table (genoTrainFile, check.names=F)
-genoTarget  = read.table (genoTargetFile, check.names=F)
-phenoTbl    = read.table (phenoFile, check.names=F, header=T)
+genoTraining   = read.csv (genoTrainFile, check.names=F, row.names=1)
+genoTesting  = read.csv (genoTestingFile, check.names=F, row.names=1)
+phenoTbl    = read.csv (phenoFile, check.names=F, header=T)
+phenoTbl
 phenoVector = phenoTbl [,2]
 names (phenoVector) = phenoTbl [,1]
 hd (phenoVector)
@@ -50,7 +49,7 @@ hd (phenoVector)
 # Set algorithm parameters
 NFOLDS  = 3
 NTIMES  = 3
-NCORES  = 8
+NCORES  = 1
 TRAIT   = colnames (phenoTbl)[2]
 
 METHODS = c ("gblup", "EGBLUP", "BA", "BL", "RF", "RKHS")
@@ -61,12 +60,12 @@ METHODS = c ("gblup", "EGBLUP", "BA", "BL", "RF", "RKHS")
 msg ("Cross Validation...")
 
 cvFun <- function (method) {
-	cvOutput <- bwgs.cv (genoTrain, phenoVector, predict.method= method, 
+	cvOutput <- bwgs.cv (genoTraining, phenoVector, predict.method= method, 
 			  geno.impute.method="mni", nFolds=NFOLDS, nTimes=NTIMES )
 	return (cvOutput)
 }
 
-msg ("Run cross validation...")
+msg ("Running cross validation...")
 listCVs         = mclapply (METHODS, cvFun, mc.cores=NCORES)
 names (listCVs) = METHODS
 
@@ -100,7 +99,7 @@ dev.off()
 msg ("Comparing predicted value...")
 predictFun <- function (method) {
 	testPredicted  = bwgs.predict (predict.method=method,
-						geno_train=genoTrain,pheno_train=phenoVector, geno_target=genoTarget,
+						geno_train=genoTraining,pheno_train=phenoVector, geno_target=genoTesting,
 						MAXNA=0.2,MAF=0.05,geno.reduct.method="NULL",reduct.size="NULL",
 						r2="NULL",pval="NULL",MAP="NULL",geno.impute.method="MNI")
 	return (testPredicted [,1])
@@ -148,7 +147,7 @@ sizes     = sizes [1:N]
 cvFunSize <- function (sampleSize, method) {
 	cvOutput <-bwgs.cv (sample.pop.size=sampleSize, 
 					    predict.method=method,
-					    geno=genoTrain, pheno=phenoVector, pop.reduct.method="RANDOM", 
+					    geno=genoTraining, pheno=phenoVector, pop.reduct.method="RANDOM", 
 					    geno.impute.method="mni", nFolds=NFOLDS, nTimes=NTIMES ) 
 	return (cvOutput$cv)
 }
